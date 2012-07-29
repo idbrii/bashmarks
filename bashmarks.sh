@@ -36,7 +36,7 @@
 if [ ! -n "$SDIRS" ]; then
     SDIRS=~/.sdirs
 fi
-touch $SDIRS
+touch $SDIRS 2> /dev/null
 
 # save current directory to bookmarks
 function s {

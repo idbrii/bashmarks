@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright (c) 2010, Huy Nguyen, http://www.huyng.com
 # All rights reserved.
 # 
@@ -23,14 +24,14 @@
 
 
 # USAGE: 
-# s bookmarkname - saves the curr dir as bookmarkname
-# j bookmarkname - jumps to the that bookmark
+# mark bookmarkname - saves the curr dir as bookmarkname
+# j bookmarkname - jumps to the input bookmark
 # j b[TAB] - tab completion is available
-# p bookmarkname - prints the bookmark
-# p b[TAB] - tab completion is available
-# d bookmarkname - deletes the bookmark
-# d [TAB] - tab completion is available
-# l - list all bookmarks
+# mark_print bookmarkname - prints the bookmark
+# mark_print b[TAB] - tab completion is available
+# mark_delete bookmarkname - deletes the bookmark
+# mark_delete [TAB] - tab completion is available
+# mark - list all bookmarks
 
 # setup file to store bookmarks
 if [ ! -n "$SDIRS" ]; then
@@ -39,13 +40,17 @@ fi
 touch $SDIRS 2> /dev/null
 
 # save current directory to bookmarks
-function s {
+function mark {
     check_help $1
-    _bookmark_name_valid "$@"
-    if [ -z "$exit_message" ]; then
-        _purge_line "$SDIRS" "export DIR_$1="
-        CURDIR=$(echo $PWD| sed "s#^$HOME#\$HOME#g")
-        echo "export DIR_$1=\"$CURDIR\"" >> $SDIRS
+    if [ -z $1 ]; then
+		_mark_list
+	else
+		_bookmark_name_valid "$@"
+		if [ -z "$exit_message" ]; then
+			_purge_line "$SDIRS" "export DIR_$1="
+			CURDIR=$(echo $PWD| sed "s#^$HOME#\$HOME#g")
+			echo "export DIR_$1=\"$CURDIR\"" >> $SDIRS
+		fi
     fi
 }
 
@@ -57,14 +62,14 @@ function j {
 }
 
 # print bookmark
-function p {
+function mark_print {
     check_help $1
     source $SDIRS
     echo "$(eval $(echo echo $(echo \$DIR_$1)))"
 }
 
 # delete bookmark
-function d {
+function mark_delete {
     check_help $1
     _bookmark_name_valid "$@"
     if [ -z "$exit_message" ]; then
@@ -77,17 +82,17 @@ function d {
 function check_help {
     if [ "$1" = "-h" ] || [ "$1" = "-help" ] || [ "$1" = "--help" ] ; then
         echo ''
-        echo 's <bookmark_name> - Saves the current directory as "bookmark_name"'
-        echo 'j <bookmark_name> - Goes (cd) to the directory associated with "bookmark_name"'
-        echo 'p <bookmark_name> - Prints the directory associated with "bookmark_name"'
-        echo 'd <bookmark_name> - Deletes the bookmark'
-        echo 'l                 - Lists all available bookmarks'
+        echo 'mark <bookmark_name>        - Marks the current directory as "bookmark_name"'
+        echo 'j <bookmark_name>           - Jumps (cd) to the directory associated with "bookmark_name"'
+        echo 'mark_print <bookmark_name>  - Prints the directory associated with "bookmark_name"'
+        echo 'mark_delete <bookmark_name> - Deletes the bookmark'
+        echo 'mark                        - Lists all available bookmarks'
         kill -SIGINT $$
     fi
 }
 
 # list bookmarks with dirnam
-function l {
+function _mark_list {
     check_help $1
     source $SDIRS
         
@@ -98,7 +103,7 @@ function l {
     # env | grep "^DIR_" | cut -c5- | sort |grep "^.*=" 
 }
 # list bookmarks without dirname
-function _l {
+function _mark_list_no_dirname {
     source $SDIRS
     env | grep "^DIR_" | cut -c5- | sort | grep "^.*=" | cut -f1 -d "=" 
 }
@@ -120,13 +125,13 @@ function _comp {
     local curw
     COMPREPLY=()
     curw=${COMP_WORDS[COMP_CWORD]}
-    COMPREPLY=($(compgen -W '`_l`' -- $curw))
+    COMPREPLY=($(compgen -W '`_mark_list_no_dirname`' -- $curw))
     return 0
 }
 
 # ZSH completion command
 function _compzsh {
-    reply=($(_l))
+    reply=($(_mark_list_no_dirname))
 }
 
 # safe delete line from sdirs
@@ -146,14 +151,14 @@ function _purge_line {
     fi
 }
 
-# bind completion command for j,p,d to _comp
+# bind completion command for j,mark_print,mark_delete to _comp
 if [ $ZSH_VERSION ]; then
     compctl -K _compzsh j
-    compctl -K _compzsh p
-    compctl -K _compzsh d
+    compctl -K _compzsh mark_print
+    compctl -K _compzsh mark_delete
 else
     shopt -s progcomp
     complete -F _comp j
-    complete -F _comp p
-    complete -F _comp d
+    complete -F _comp mark_print
+    complete -F _comp mark_delete
 fi
